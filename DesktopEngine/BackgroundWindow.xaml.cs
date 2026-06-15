@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Interop;
 
 namespace Backdrop.NET;
@@ -17,11 +16,7 @@ public partial class BackgroundWindow : Window {
 
     protected override void OnSourceInitialized(EventArgs e) {
 	    base.OnSourceInitialized(e);
-
-	    // Grab the handle for this specific window
 	    IntPtr handle = new WindowInteropHelper(this).Handle;
-
-	    // Push it to the background
 	    DesktopApi.SendToBackground(handle);
     }
 }

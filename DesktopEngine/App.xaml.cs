@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -18,20 +17,24 @@ public partial class App {
     protected override void OnStartup(StartupEventArgs e) {
         base.OnStartup(e);
 
+        //RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+
         int monitorIndex = 0;
 
-
+        double virtualScreenLeft = Screen.AllScreens.Min(s => s.Bounds.Left);
+        double virtualScreenTop = Screen.AllScreens.Min(s => s.Bounds.Top);
+		
         foreach (Screen screen in Screen.AllScreens) {
 
             (double scaleX, double scaleY) = DpiHelper.GetMonitorScaleFactor(screen.Bounds.Left, screen.Bounds.Top);
 
             BackgroundWindow window = new(monitorIndex) {
-                Left = screen.Bounds.Left / scaleX,
-                Top = screen.Bounds.Top / scaleY,
-                Width = screen.Bounds.Width / scaleX,
-                Height = screen.Bounds.Height / scaleY,
-                WindowStyle = WindowStyle.None,
-                ResizeMode = ResizeMode.NoResize
+	            Left = (screen.Bounds.Left - virtualScreenLeft) / scaleX,
+	            Top = (screen.Bounds.Top - virtualScreenTop) / scaleY,
+	            Width = screen.Bounds.Width / scaleX,
+	            Height = screen.Bounds.Height / scaleY,
+	            WindowStyle = WindowStyle.None,
+	            ResizeMode = ResizeMode.NoResize
             };
 
 #if DEBUG
@@ -49,21 +52,6 @@ public partial class App {
 	        window.WidgetCanvas.Children.Add(debugText);
 #endif
 
-            
-            //window.SourceInitialized += (s, ev) => {
-	           // IntPtr handle = new WindowInteropHelper(window).Handle;
-            //    Debug.WriteLine("=======");
-            //    Debug.WriteLine($"Source Initialized {handle}");
-            //    Debug.WriteLine("=======");
-            //    //DesktopApi.SendToBackground(handle);
-            //    try {
-            //        DesktopApi.SendToBackground(handle);
-            //    }
-            //    catch (Exception ex) {
-            //        Debug.WriteLine(ex.Message);
-            //    }
-            //};
-            
             window.Show();
 
             backgroundWindows.Add(monitorIndex, window);
@@ -87,7 +75,6 @@ public partial class App {
 		        ZIndex = 1
 	        });
 
-	        // This will automatically create layout.json in your active bin folder
 	        manager.SaveLayout(savedWidgets);
         }
 

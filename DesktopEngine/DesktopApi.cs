@@ -1,48 +1,63 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Backdrop.NET;
 
 public static class DesktopApi {
 
-	[DllImport("user32.dll")]
-	public static extern IntPtr FindWindow(string className, string windowName);
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
 
 	[DllImport("user32.dll")]
-	public static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint timeout, out IntPtr result);
+	[return: MarshalAs(UnmanagedType.Bool)]
+	private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
 	[DllImport("user32.dll")]
-	public static extern IntPtr SetParent(IntPtr hwndChild, IntPtr hwndNewParent);
+	private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-	[DllImport("user32.dll")]
-	public static extern IntPtr FindWindowEx(IntPtr parentHwnd, IntPtr childAfter, string className, string windowTitle);
+	private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
-	public static void SendToBackground(IntPtr windowHandle) {
-		IntPtr progman = FindWindow("Progman", null!);
+	private const int GWL_STYLE = -16;
+	private const int WS_CHILD = 0x40000000;
+	private const int WS_CAPTION = 0x00C00000;
 
-		// Send message 0x052C to Progman. This forces Windows to spawn a WorkerW window behind the desktop icons.
-		SendMessageTimeout(progman, 0x052C, new IntPtr(0), IntPtr.Zero, 0x0, 1000, out _);
+	public static void SendToBackground(IntPtr myWindowHandle) {
+		IntPtr progman = FindWindow("Progman", null);
+		IntPtr result = IntPtr.Zero;
+
+		SendMessageTimeout(progman, 0x052C, new IntPtr(0x0000000D), IntPtr.Zero, 0x0000, 1000, out result);
 
 		IntPtr workerW = IntPtr.Zero;
 
-		// Loop through all windows to find the correct WorkerW
-		EnumWindows((tophandle, _) => {
-			IntPtr p = FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null!);
-			if (p != IntPtr.Zero) {
-				// The WorkerW we want is the sibling of the window hosting SHELLDLL_DefView
-				workerW = FindWindowEx(IntPtr.Zero, tophandle, "WorkerW", null!);
+		EnumWindows(new EnumWindowsProc((toplevelHandle, lParam) => {
+			IntPtr shellDll = FindWindowEx(toplevelHandle, IntPtr.Zero, "SHELLDLL_DefView", null);
+			if (shellDll != IntPtr.Zero) {
+				// Gets the WorkerW directly behind the shell desktop icons
+				workerW = FindWindowEx(IntPtr.Zero, toplevelHandle, "WorkerW", null);
 			}
 			return true;
-		}, IntPtr.Zero);
+		}), IntPtr.Zero);
 
-		if (workerW == IntPtr.Zero) {
-			workerW = progman;
+		if ((workerW == IntPtr.Zero) || (myWindowHandle == IntPtr.Zero)) {
+			Debug.WriteLine("Returning");
+			return;
 		}
 
-		SetParent(windowHandle, workerW);
-    }
+		int currentStyle = GetWindowLong(myWindowHandle, GWL_STYLE);
+		_ = SetWindowLong(myWindowHandle, GWL_STYLE, (currentStyle | WS_CHILD) & ~WS_CAPTION);
 
-	private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
-	[DllImport("user32.dll")]
-	private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
-
+		SetParent(myWindowHandle, workerW);
+	}
 }
