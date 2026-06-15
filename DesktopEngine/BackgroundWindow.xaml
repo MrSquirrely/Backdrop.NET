@@ -5,11 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Desktop Engine"
-        WindowStyle="None"
-        ResizeMode="NoResize"
         ShowInTaskbar="False"
-        Background="Transparent"
-        AllowsTransparency="True"
+        Background="LightSlateGray"
+        AllowsTransparency="False"
         >
     <Canvas x:Name="WidgetCanvas" Background="{x:Null}"/>
 </Window>

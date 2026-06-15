@@ -1,6 +1,5 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Interop;
 using System.Windows.Media;
 using Backdrop.NET.Models;
 using Backdrop.NET.Widgets;
@@ -13,52 +12,65 @@ namespace Backdrop.NET;
 public partial class App {
 
     private readonly Dictionary<int, BackgroundWindow?> backgroundWindows = new();
+    private WindowStateChecker? stateChecker;
 
     protected override void OnStartup(StartupEventArgs e) {
-        base.OnStartup(e);
+	    base.OnStartup(e);
 
-        //RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+	    int monitorIndex = 0;
+	    double virtualScreenLeft = Screen.AllScreens.Min(s => s.Bounds.Left);
+	    double virtualScreenTop = Screen.AllScreens.Min(s => s.Bounds.Top);
 
-        int monitorIndex = 0;
+	    foreach (Screen screen in Screen.AllScreens) {
+		    (double scaleX, double scaleY) = DpiHelper.GetMonitorScaleFactor(screen.Bounds.Left, screen.Bounds.Top);
 
-        double virtualScreenLeft = Screen.AllScreens.Min(s => s.Bounds.Left);
-        double virtualScreenTop = Screen.AllScreens.Min(s => s.Bounds.Top);
-		
-        foreach (Screen screen in Screen.AllScreens) {
+		    int physicsX = (int)(screen.Bounds.Left - virtualScreenLeft);
+		    int physicsY = (int)(screen.Bounds.Top - virtualScreenTop);
+		    int physicsWidth = (int)screen.Bounds.Width;
+		    int physicsHeight = (int)screen.Bounds.Height;
 
-            (double scaleX, double scaleY) = DpiHelper.GetMonitorScaleFactor(screen.Bounds.Left, screen.Bounds.Top);
+		    BackgroundWindow window = new(monitorIndex, physicsX, physicsY, physicsWidth, physicsHeight) {
+			    Left = physicsX / scaleX,
+			    Top = physicsY / scaleY,
+			    Width = physicsWidth / scaleX,
+			    Height = physicsHeight / scaleY,
+			    WindowStyle = WindowStyle.None,
+			    ResizeMode = ResizeMode.NoResize
+		    };
 
-            BackgroundWindow window = new(monitorIndex) {
-	            Left = (screen.Bounds.Left - virtualScreenLeft) / scaleX,
-	            Top = (screen.Bounds.Top - virtualScreenTop) / scaleY,
-	            Width = screen.Bounds.Width / scaleX,
-	            Height = screen.Bounds.Height / scaleY,
-	            WindowStyle = WindowStyle.None,
-	            ResizeMode = ResizeMode.NoResize
-            };
+		    window.Show();
+		    backgroundWindows.Add(monitorIndex, window);
+		    monitorIndex++;
+	    }
 
-#if DEBUG
-	        TextBlock debugText = new() {
-		        Text = $"Monitor {monitorIndex}",
-		        FontSize = 150,
-		        FontWeight = FontWeights.Bold,
-		        Foreground = new SolidColorBrush(Color.FromArgb(75, 255, 255, 255)), // ~30% opacity white
-		        IsHitTestVisible = false // Prevents the text from stealing mouse clicks
-	        };
+	    LoadAndDistributeWidgets();
 
-	        Canvas.SetLeft(debugText, 50);
-	        Canvas.SetTop(debugText, 50);
+	    // Initialize and listen to window visibility state changes
+	    InitializeOptimizationTracker();
+    }
 
-	        window.WidgetCanvas.Children.Add(debugText);
-#endif
+    private void InitializeOptimizationTracker() {
+	    stateChecker = new WindowStateChecker(1000);
+	    stateChecker.WindowStateChanged += (state, screen) => {
+		    // Marshal back to the WPF UI thread safely
+		    Dispatcher.BeginInvoke(new Action(() => {
+			    var targetPair = Screen.AllScreens
+			                           .Select((s, idx) => new { Screen = s, Index = idx })
+			                           .FirstOrDefault(p => p.Screen.DeviceName == screen.DeviceName);
 
-            window.Show();
-
-            backgroundWindows.Add(monitorIndex, window);
-            monitorIndex++;
-        }
-
-        LoadAndDistributeWidgets();
+			    if (targetPair != null && backgroundWindows.TryGetValue(targetPair.Index, out BackgroundWindow? win) && win != null) {
+				    if (state == WindowStateChecker.WindowState.Maximized) {
+					    // Optimize resources: Screen is hidden behind a maximized app
+					    win.Visibility = Visibility.Collapsed;
+				    }
+				    else {
+					    // Restore resources: Screen background is visible again
+					    win.Visibility = Visibility.Visible;
+				    }
+			    }
+		    }));
+	    };
+	    stateChecker.Start();
     }
 
     private void LoadAndDistributeWidgets() {
@@ -128,6 +140,11 @@ public partial class App {
         }
 
         return container;
+    }
+
+    protected override void OnExit(ExitEventArgs e) {
+	    stateChecker?.Stop();
+	    base.OnExit(e);
     }
 }
 
