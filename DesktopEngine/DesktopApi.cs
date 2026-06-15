@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -21,6 +21,7 @@ public static class DesktopApi {
     [DllImport("user32.dll", SetLastError = true)]
     public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
+    // Keep 32-bit signatures available (used for fallback)
     [DllImport("user32.dll", SetLastError = true)]
     public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
@@ -61,6 +62,27 @@ public static class DesktopApi {
     [DllImport("dwmapi.dll")]
     public static extern int DwmGetWindowAttribute(IntPtr hwnd, uint dwAttribute, out int pvAttribute, int cbAttribute);
 
+    // Pointer-size (x64-safe) Get/SetWindowLongPtr wrappers.
+    // On x64 these map to GetWindowLongPtr/SetWindowLongPtr, on x86 we use the existing GetWindowLong/SetWindowLong.
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+    private static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex) =>
+        IntPtr.Size == 8 ? GetWindowLongPtr64(hWnd, nIndex) : new IntPtr(GetWindowLong(hWnd, nIndex));
+
+    private static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong) {
+        if (IntPtr.Size == 8) {
+            return SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
+        } else {
+            // fallback to 32-bit SetWindowLong
+            int res = SetWindowLong(hWnd, nIndex, dwNewLong.ToInt32());
+            return new IntPtr(res);
+        }
+    }
+
     public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential)]
@@ -99,6 +121,7 @@ public static class DesktopApi {
     public static void SendToBackground(IntPtr myWindowHandle, int x, int y, int width, int height) {
         if (myWindowHandle == IntPtr.Zero) return;
 
+        // Pre-position out of view to avoid activation
         SetWindowPos(myWindowHandle, IntPtr.Zero, -10000, 0, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER);
 
         IntPtr progman = FindWindow("Progman", null);
@@ -113,11 +136,16 @@ public static class DesktopApi {
 
         if (workerW == IntPtr.Zero) return;
 
-        int currentStyle = GetWindowLong(myWindowHandle, GWL_STYLE);
-        _ = SetWindowLong(myWindowHandle, GWL_STYLE, (currentStyle & ~WS_POPUP & ~WS_CAPTION) | WS_CHILD);
+        // Read/modify styles using pointer-sized APIs
+        IntPtr currentStylePtr = GetWindowLongPtr(myWindowHandle, GWL_STYLE);
+        long currentStyle = currentStylePtr.ToInt64();
+        long newStyle = (currentStyle & ~((long)WS_POPUP) & ~((long)WS_CAPTION)) | ((long)WS_CHILD);
+        SetWindowLongPtr(myWindowHandle, GWL_STYLE, new IntPtr(newStyle));
 
-        int currentExStyle = GetWindowLong(myWindowHandle, GWL_EXSTYLE);
-        _ = SetWindowLong(myWindowHandle, GWL_EXSTYLE, currentExStyle | WS_EX_TOOLWINDOW);
+        IntPtr currentExStylePtr = GetWindowLongPtr(myWindowHandle, GWL_EXSTYLE);
+        long currentExStyle = currentExStylePtr.ToInt64();
+        long newExStyle = currentExStyle | ((long)WS_EX_TOOLWINDOW);
+        SetWindowLongPtr(myWindowHandle, GWL_EXSTYLE, new IntPtr(newExStyle));
 
         IntPtr parentResult = IntPtr.Zero;
         int attempts = 0;
@@ -127,7 +155,12 @@ public static class DesktopApi {
             attempts++;
         }
 
-        if (parentResult == IntPtr.Zero) return;
+        if (parentResult == IntPtr.Zero) {
+            // diagnostics enabled by default: log Win32 error code when SetParent fails
+            int err = Marshal.GetLastWin32Error();
+            System.Diagnostics.Debug.WriteLine($"SetParent failed: {err}");
+            return;
+        }
 
         RECT geometryBounds = new RECT(x, y, x + width, y + height);
         MapWindowPoints(IntPtr.Zero, workerW, ref geometryBounds, 2);
