@@ -14,10 +14,12 @@ namespace DesktopEngine;
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
-public partial class MainWindow : Window {
+public partial class BackgroundWindow : Window {
 
+    public int MonitorIndex { get; private set; }
 
-    public MainWindow(int monitorIndex) {
+    public BackgroundWindow(int monitorIndex) {
         InitializeComponent();
+        MonitorIndex = monitorIndex;
     }
 }
