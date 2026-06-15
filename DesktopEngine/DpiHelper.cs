@@ -6,9 +6,9 @@ namespace Backdrop.NET;
 public static class DpiHelper {
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct Point(int x, int y) {
-        public int X = x;
-        public int Y = y;
+    public struct SPoint(double x, double y) {
+        public double X = x;
+        public double Y = y;
     }
 
     public enum MonitorDpiType {
@@ -21,7 +21,7 @@ public static class DpiHelper {
     private const int MONITOR_DEFAULTTONEAREST = 2;
 
     [DllImport("User32.dll")]
-    private static extern IntPtr MonitorFromPoint(Point pt, int flags);
+    private static extern IntPtr MonitorFromPoint(SPoint pt, int flags);
 
     [DllImport("Shcore.dll")]
     private static extern int GetDpiForMonitor(IntPtr hmonitor, MonitorDpiType dpiType, out uint dpiX, out uint dpiY);
@@ -31,7 +31,7 @@ public static class DpiHelper {
     /// </summary>
     public static (double ScaleX, double ScaleY) GetMonitorScaleFactor(double x, double y) {
         try {
-            IntPtr hMonitor = MonitorFromPoint(new Point(x, y), MONITOR_DEFAULTTONEAREST);
+            IntPtr hMonitor = MonitorFromPoint(new SPoint(x, y), MONITOR_DEFAULTTONEAREST);
 
             if (hMonitor != IntPtr.Zero) {
                 int result = GetDpiForMonitor(hMonitor, MonitorDpiType.MDT_Effective_DPI, out uint dpiX, out uint dpiY);

@@ -1,7 +1,6 @@
 ﻿namespace Backdrop.NET.Models;
 
 public class WidgetState {
-
 	public Guid WidgetId { get; set; } = Guid.Empty;
 	public string WidgetType { get; set; } = string.Empty;
 	public int MonitorIndex { get; set; } = int.MinValue;

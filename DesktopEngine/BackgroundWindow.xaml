@@ -9,6 +9,7 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Background="Transparent"
+        AllowsTransparency="True"
         >
-    <Canvas x:Name="WidgetCanvas" Background="{x:Null}"></Canvas>
+    <Canvas x:Name="WidgetCanvas" Background="{x:Null}"/>
 </Window>

@@ -6,9 +6,9 @@ namespace Backdrop.NET;
 
 public class LayoutManager {
 
-	private readonly string layoutFilePath = "layout.json";
+	private readonly string layoutFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "layout.json");
 
-	public void SaveLayout(IEnumerable<WidgetState> widgets) {
+    public void SaveLayout(IEnumerable<WidgetState> widgets) {
 		JsonSerializerOptions options = new() {
 			WriteIndented = true
 		};

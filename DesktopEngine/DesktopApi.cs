@@ -17,7 +17,7 @@ public static class DesktopApi {
 	public static extern IntPtr FindWindowEx(IntPtr parentHwnd, IntPtr childAfter, string className, string windowTitle);
 
 	public static void SendToBackground(IntPtr windowHandle) {
-		IntPtr progman = FindWindow("Progman", null);
+		IntPtr progman = FindWindow("Progman", null!);
 
 		// Send message 0x052C to Progman. This forces Windows to spawn a WorkerW window behind the desktop icons.
 		SendMessageTimeout(progman, 0x052C, new IntPtr(0), IntPtr.Zero, 0x0, 1000, out _);
@@ -25,19 +25,21 @@ public static class DesktopApi {
 		IntPtr workerW = IntPtr.Zero;
 
 		// Loop through all windows to find the correct WorkerW
-		EnumWindows(new EnumWindowsProc((tophandle, topparamhandle) => {
-			IntPtr p = FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null);
+		EnumWindows((tophandle, _) => {
+			IntPtr p = FindWindowEx(tophandle, IntPtr.Zero, "SHELLDLL_DefView", null!);
 			if (p != IntPtr.Zero) {
 				// The WorkerW we want is the sibling of the window hosting SHELLDLL_DefView
-				workerW = FindWindowEx(IntPtr.Zero, tophandle, "WorkerW", null);
+				workerW = FindWindowEx(IntPtr.Zero, tophandle, "WorkerW", null!);
 			}
 			return true;
-		}), IntPtr.Zero);
+		}, IntPtr.Zero);
 
-		if (workerW != IntPtr.Zero) {
-			SetParent(windowHandle, workerW);
+		if (workerW == IntPtr.Zero) {
+			workerW = progman;
 		}
-	}
+
+		SetParent(windowHandle, workerW);
+    }
 
 	private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
 	[DllImport("user32.dll")]
