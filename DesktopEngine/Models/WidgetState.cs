@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Text;
-
-namespace DesktopEngine.Models;
+﻿namespace Backdrop.NET.Models;
 
 public class WidgetState {
 

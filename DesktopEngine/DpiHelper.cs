@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace DesktopEngine;
+namespace Backdrop.NET;
 
 public static class DpiHelper {
 

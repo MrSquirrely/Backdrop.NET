@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
-
-using DesktopEngine.Models;
-
+using Backdrop.NET.Models;
 using WpfScreenHelper;
 
-namespace DesktopEngine;
+namespace Backdrop.NET;
 /// <summary>
 /// Interaction logic for App.xaml
 /// </summary>

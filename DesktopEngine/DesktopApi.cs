@@ -1,8 +1,6 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using System.Windows.Interop;
+﻿using System.Runtime.InteropServices;
 
-namespace DesktopEngine;
+namespace Backdrop.NET;
 
 public static class DesktopApi {
 

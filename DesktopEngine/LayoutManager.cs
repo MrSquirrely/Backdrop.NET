@@ -1,10 +1,8 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
+using Backdrop.NET.Models;
 
-using DesktopEngine.Models;
-
-namespace DesktopEngine;
+namespace Backdrop.NET;
 
 public class LayoutManager {
 
