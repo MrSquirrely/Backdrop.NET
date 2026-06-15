@@ -1,4 +1,5 @@
-﻿using System.Windows;
+using System;
+using System.Windows;
 using System.Windows.Interop;
 
 namespace Backdrop.NET;
@@ -22,11 +23,12 @@ public partial class BackgroundWindow : Window {
 		this.width = width;
 		this.height = height;
 
-		Loaded += OnWindowLoaded;
+		// Use SourceInitialized so the HWND exists before doing interop.
+		SourceInitialized += OnWindowSourceInitialized;
 	}
 
-	private void OnWindowLoaded(object sender, RoutedEventArgs e) {
+	private void OnWindowSourceInitialized(object? sender, EventArgs e) {
 		IntPtr handle = new WindowInteropHelper(this).Handle;
-		//DesktopApi.SendToBackground(handle, x, y, width, height);
+		DesktopApi.SendToBackground(handle, x, y, width, height);
 	}
 }
