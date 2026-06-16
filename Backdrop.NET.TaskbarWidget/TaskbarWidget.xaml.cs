@@ -85,4 +85,8 @@ public partial class TaskbarWidget : UserControl {
         public IntPtr Handle { get; set; }
         // Icon is intentionally left out for the fallback, it will just show the Title text.
     }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e) {
+	    System.Windows.Application.Current.Shutdown();
+    }
 }
