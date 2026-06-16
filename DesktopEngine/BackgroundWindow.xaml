@@ -9,5 +9,8 @@
         Background="LightSlateGray"
         AllowsTransparency="False"
         >
-    <Canvas x:Name="WidgetCanvas" Background="{x:Null}"/>
+    <Grid>
+        <Image x:Name="WallpaperImage" Stretch="UniformToFill" />
+        <Canvas x:Name="WidgetCanvas" Background="{x:Null}"/>
+    </Grid>
 </Window>

@@ -67,7 +67,6 @@ public partial class WidgetContainer {
 
         Point mouseInWindow = e.GetPosition(currentWindow);
 
-        // 1. Calculate pure WPF logical movement delta
         double deltaX = mouseInWindow.X - lastMousePos.X;
         double deltaY = mouseInWindow.Y - lastMousePos.Y;
 
@@ -75,7 +74,6 @@ public partial class WidgetContainer {
         logicalY += deltaY;
         lastMousePos = mouseInWindow;
 
-        // 2. Find which monitor/window the mouse is currently hovering over
         Point physicalMouse = currentWindow.PointToScreen(mouseInWindow);
         BackgroundWindow targetWindow = currentWindow;
 
@@ -92,25 +90,21 @@ public partial class WidgetContainer {
             break;
         }
 
-        // 3. Hot-Swap monitors if the mouse crossed a screen boundary
         if ((targetWindow != currentWindow) && Parent is Canvas currentCanvas) {
             currentCanvas.Children.Remove(this);
             targetWindow.WidgetCanvas.Children.Add(this);
 
-            // Translate the widget's logical coordinates into the new window's coordinate space
             Point widgetPhysical = currentWindow.PointToScreen(new Point(logicalX, logicalY));
             Point newLogicalPos = targetWindow.PointFromScreen(widgetPhysical);
 
             logicalX = newLogicalPos.X;
             logicalY = newLogicalPos.Y;
 
-            // Reset the mouse tracker relative to the new window
             lastMousePos = targetWindow.PointFromScreen(physicalMouse);
 
             ((FrameworkElement)sender).CaptureMouse();
         }
 
-        // 4. Snap to grid visually, but keep the internal tracking exact
         double renderX = logicalX;
         double renderY = logicalY;
 
@@ -123,7 +117,6 @@ public partial class WidgetContainer {
         Canvas.SetTop(this, renderY);
     }
 
-    // Keep this empty so XAML compiler doesn't complain if DragDelta is still bound in the markup
     private void DragGrip_OnDragDelta(object sender, DragDeltaEventArgs e) { }
 
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e) {
@@ -143,44 +136,3 @@ public partial class WidgetContainer {
         return 0;
     }
 }
-//private readonly bool snapToGrid = true;
-//private const double GridSize = 50.0;
-
-//public WidgetContainer() {
-//    InitializeComponent();
-//}
-
-//protected override void OnPreviewMouseDown(MouseButtonEventArgs e) {
-// base.OnPreviewMouseDown(e);
-
-// int highestZ = GetHighestZIndex();
-//    Canvas.SetZIndex(this, highestZ + 1);
-//}
-
-//private int GetHighestZIndex() {
-// if (Parent is Panel parentPanel) {
-//  return parentPanel.Children.OfType<UIElement>().Select(Canvas.GetZIndex).DefaultIfEmpty(0).Max();
-// }
-
-// return 0;
-//}
-
-
-//private void DragGrip_OnDragDelta(object sender, DragDeltaEventArgs e) {
-//    double left = Canvas.GetLeft(this);
-//    double top = Canvas.GetTop(this);
-
-//    if (double.IsNaN(left)) left = 0;
-//    if (double.IsNaN(top)) top = 0;
-
-//    double rawX = left + e.HorizontalChange;
-//    double rawY = top + e.VerticalChange;
-
-//    if (snapToGrid) {
-//        rawX = Math.Round(rawX / GridSize) * GridSize;
-//        rawY = Math.Round(rawY / GridSize) * GridSize;
-//    }
-
-//    Canvas.SetLeft(this, rawX);
-//    Canvas.SetTop(this, rawY);
-//}

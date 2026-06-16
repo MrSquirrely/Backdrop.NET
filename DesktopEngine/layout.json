@@ -6,5 +6,13 @@
     "X": 100,
     "Y": 100,
     "ZIndex": 1
+  },
+  {
+    "WidgetId": "1B1C3136-82DA-4059-B66F-0BDF7DBD097B",
+    "WidgetType": "Taskbar",
+    "MonitorIndex": 0,
+    "X": 100,
+    "Y": 200,
+    "ZIndex": 2
   }
 ]

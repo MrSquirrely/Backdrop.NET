@@ -1,3 +1,6 @@
 <Solution>
+  <Project Path="Backdrop.NET.ClockWidget/Backdrop.NET.ClockWidget.csproj" Id="ba754b32-78f0-4125-a3b3-4fd0a693a061" />
+  <Project Path="Backdrop.NET.Contracts/Backdrop.NET.Contracts.csproj" Id="5024ef91-f052-4eec-9242-922b2c486b0f" />
+  <Project Path="Backdrop.NET.TaskbarWidget/Backdrop.NET.TaskbarWidget.csproj" Id="4ecedc00-4f91-4a3b-a1e6-8bc0f16a3097" />
   <Project Path="DesktopEngine/Backdrop.NET.csproj" />
 </Solution>

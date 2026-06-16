@@ -22,13 +22,19 @@ public partial class BackgroundWindow : Window {
 		this.y = y;
 		this.width = width;
 		this.height = height;
-
-		// Use SourceInitialized so the HWND exists before doing interop.
 		SourceInitialized += OnWindowSourceInitialized;
-	}
+    }
 
 	private void OnWindowSourceInitialized(object? sender, EventArgs e) {
 		IntPtr handle = new WindowInteropHelper(this).Handle;
-		DesktopApi.SendToBackground(handle, x, y, width, height);
+
+		// Push the window to the absolute bottom of the Z-order
+		IntPtr HWND_BOTTOM = new IntPtr(1);
+		uint SWP_NOMOVE = 0x0002;
+		uint SWP_NOSIZE = 0x0001;
+		uint SWP_NOACTIVATE = 0x0010;
+
+		DesktopApi.SetWindowPos(handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
+
 }

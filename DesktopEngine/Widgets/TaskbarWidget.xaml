@@ -1,0 +1,39 @@
+﻿<UserControl x:Class="Backdrop.NET.Widgets.TaskbarWidget"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Backdrop.NET.Widgets"
+             mc:Ignorable="d" 
+             Width="600" Height="50">
+    <Border Background="#CC000000" CornerRadius="10" Padding="10,0">
+
+        <ItemsControl x:Name="TaskItemsControl">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Click="TaskButton_Click" 
+                            Margin="4" Height="36" Padding="8,0"
+                            Background="#33FFFFFF" BorderThickness="0"
+                            ToolTip="{Binding Title}">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding Icon}" Width="24" Height="24" Margin="0,0,8,0"/>
+
+                            <TextBlock Text="{Binding Title}" 
+                                       VerticalAlignment="Center" 
+                                       Foreground="White" 
+                                       MaxWidth="120" 
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+    </Border>
+</UserControl>

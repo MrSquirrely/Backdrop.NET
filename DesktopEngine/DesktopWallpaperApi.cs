@@ -40,9 +40,7 @@ public static class DesktopWallpaperFactory {
     [Guid("C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD")]
     private class DesktopWallpaperCoclass { }
 
-    public static IDesktopWallpaper Create() {
-        return (IDesktopWallpaper) new DesktopWallpaperCoclass();
-    }
+    public static IDesktopWallpaper Create() => ((IDesktopWallpaper)new DesktopWallpaperCoclass())!;
 }
 
 public static class DesktopWallpaperApi {
@@ -66,12 +64,7 @@ public static class DesktopWallpaperApi {
         return null;
     }
 
-    public static string GetWallpaper(string? monitorId) {
-        if (monitorId == null) return string.Empty;
-        return DesktopFactory.Value.GetWallpaper(monitorId);
-    }
+    public static string GetWallpaper(string? monitorId) => monitorId == null ? string.Empty : DesktopFactory.Value.GetWallpaper(monitorId);
 
-    public static DesktopWallpaperPosition GetPosition() {
-        return DesktopFactory.Value.GetPosition();
-    }
+    public static DesktopWallpaperPosition GetPosition() => DesktopFactory.Value.GetPosition();
 }

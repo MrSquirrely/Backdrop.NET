@@ -1,0 +1,27 @@
+﻿<UserControl x:Class="Backdrop.NET.ClockWidget.ClockWidget"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Backdrop.NET.ClockWidget"
+             mc:Ignorable="d" 
+             MinWidth="200" MinHeight="80">
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
+        <TextBlock x:Name="TimeText" 
+                   FontSize="48" 
+                   FontWeight="SemiBold" 
+                   HorizontalAlignment="Center"
+                   FontFamily="Segoe UI"
+                   Foreground="White">
+            <TextBlock.Effect>
+                <DropShadowEffect ShadowDepth="2" BlurRadius="5" Opacity="0.8"/>
+            </TextBlock.Effect>
+        </TextBlock>
+        <TextBlock x:Name="DateText"
+                   FontSize="16"
+                   Foreground="#FFAAAAAA"
+                   HorizontalAlignment="Center"
+                   Margin="0 -5 0 0"
+                   FontFamily="Segoe UI"/>
+    </StackPanel>
+</UserControl>
