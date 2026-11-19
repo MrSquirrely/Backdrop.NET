@@ -3,10 +3,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+
 using Backdrop.NET.Contracts;
 using Backdrop.NET.Models;
-using Backdrop.NET.Widgets;
+
 using ManagedShell;
+
 using WpfScreenHelper;
 
 namespace Backdrop.NET;
@@ -15,160 +18,176 @@ namespace Backdrop.NET;
 /// </summary>
 public partial class App {
 
-    private readonly Dictionary<int, BackgroundWindow?> backgroundWindows = new();
+    private readonly Dictionary<int, BackgroundWindow> backgroundWindows = [];
     public static ShellManager ShellManager { get; private set; } = null!;
-    public static PluginManager PluginManager { get; private set; } = new();
+    public static PluginManager PluginManager { get; } = new();
 
     protected override void OnStartup(StartupEventArgs e) {
-	    base.OnStartup(e);
+        base.OnStartup(e);
 
-	    ShellManager = new ShellManager();
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
 
-	    string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Widgets");
-	    PluginManager.LoadPlugins(pluginsPath);
+        ShellManager = new ShellManager();
+
+        string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Widgets");
+        PluginManager.LoadPlugins(pluginsPath);
 
         int monitorIndex = 0;
 
-	    foreach (Screen screen in Screen.AllScreens) {
-		    (double scaleX, double scaleY) = DpiHelper.GetMonitorScaleFactor(screen.Bounds.Left, screen.Bounds.Top);
+        foreach (Screen screen in Screen.AllScreens) {
+            int physicsX = (int)screen.Bounds.Left;
+            int physicsY = (int)screen.Bounds.Top;
+            int physicsWidth = (int)screen.Bounds.Width;
+            int physicsHeight = (int)screen.Bounds.Height;
 
-		    int physicsX = (int)screen.Bounds.Left;
-		    int physicsY = (int)screen.Bounds.Top;
-		    int physicsWidth = (int)screen.Bounds.Width;
-		    int physicsHeight = (int)screen.Bounds.Height;
+            (double scaleX, double scaleY) = DpiHelper.GetMonitorScaleFactor(physicsX, physicsY);
 
-			string? monitorId = DesktopWallpaperApi.GetMonitorId(screen);
-			string wallpaperPath = DesktopWallpaperApi.GetWallpaper(monitorId);
+            // Left/Top/Width/Height are only a starting hint; the window pins itself to the physical bounds.
+            BackgroundWindow window = new(monitorIndex, physicsX, physicsY, physicsWidth, physicsHeight) {
+                Left = physicsX / scaleX,
+                Top = physicsY / scaleY,
+                Width = physicsWidth / scaleX,
+                Height = physicsHeight / scaleY,
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize
+            };
 
-			BackgroundWindow window = new(monitorIndex, physicsX, physicsY, physicsWidth, physicsHeight) {
-			    Left = physicsX / scaleX,
-			    Top = physicsY / scaleY,
-			    Width = physicsWidth / scaleX,
-			    Height = physicsHeight / scaleY,
-			    WindowStyle = WindowStyle.None,
-			    ResizeMode = ResizeMode.NoResize
-		    };
+            window.WallpaperImage.Source = LoadWallpaper(screen, physicsWidth, physicsHeight);
 
-			if (!string.IsNullOrEmpty(wallpaperPath) && File.Exists(wallpaperPath)) {
-				window.WallpaperImage.Source = new BitmapImage(new Uri(wallpaperPath));
-			}
+            window.Show();
+            backgroundWindows.Add(monitorIndex, window);
+            monitorIndex++;
+        }
 
-			window.Show();
-		    backgroundWindows.Add(monitorIndex, window);
-		    monitorIndex++;
-	    }
-
-	    LoadAndDistributeWidgets();
+        LoadAndDistributeWidgets();
     }
 
+    // The shell is the user's whole desktop: log and keep running rather than leave a black screen.
+    private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e) {
+        Log.Error("Unhandled exception on the UI thread", e.Exception);
+        e.Handled = true;
+    }
+
+    private static BitmapSource? LoadWallpaper(Screen screen, int targetWidth, int targetHeight) {
+        try {
+            string? monitorId = DesktopWallpaperApi.GetMonitorId(screen);
+            string wallpaperPath = DesktopWallpaperApi.GetWallpaper(monitorId);
+
+            if (string.IsNullOrEmpty(wallpaperPath) || !File.Exists(wallpaperPath)) {
+                return null;
+            }
+
+            using FileStream stream = new(wallpaperPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+
+            // Read only the header to find out how far the image can be downscaled while still filling the screen
+            BitmapDecoder decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
+            int sourceWidth = decoder.Frames[0].PixelWidth;
+            int sourceHeight = decoder.Frames[0].PixelHeight;
+            double scale = Math.Max((double)targetWidth / sourceWidth, (double)targetHeight / sourceHeight);
+
+            stream.Position = 0;
+
+            BitmapImage image = new();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad; // decode now so the file is not kept open
+            image.StreamSource = stream;
+            if (scale < 1.0) {
+                image.DecodePixelWidth = (int)Math.Ceiling(sourceWidth * scale);
+            }
+            image.EndInit();
+            image.Freeze();
+
+            return image;
+        }
+        catch (Exception ex) {
+            Log.Error($"Could not load the wallpaper for monitor {screen.DeviceName}", ex);
+            return null;
+        }
+    }
 
     private void LoadAndDistributeWidgets() {
         LayoutManager manager = new();
         List<WidgetState> savedWidgets = manager.LoadLayout();
 
         if (savedWidgets.Count == 0) {
-	        savedWidgets.Add(new WidgetState {
-		        WidgetId = Guid.NewGuid(),
-		        WidgetType = "Clock",
-		        MonitorIndex = 0, // Spawn on primary monitor
-		        X = 100,
-		        Y = 100,
-		        ZIndex = 1
-	        });
+            savedWidgets.Add(new WidgetState {
+                WidgetId = Guid.NewGuid(),
+                WidgetType = "Clock",
+                MonitorIndex = 0, // Spawn on primary monitor
+                X = 100,
+                Y = 100,
+                ZIndex = 1
+            });
 
-	        manager.SaveLayout(savedWidgets);
+            manager.SaveLayout(savedWidgets);
         }
 
         foreach (WidgetState savedWidget in savedWidgets) {
-            if (backgroundWindows.TryGetValue(savedWidget.MonitorIndex, out BackgroundWindow? targetWindow)) {
-                WidgetContainer container = CreateWidgetContainer(savedWidget);
+            bool monitorFound = true;
 
-                Canvas.SetLeft(container, savedWidget.X);
-                Canvas.SetTop(container, savedWidget.Y);
-                Panel.SetZIndex(container, savedWidget.ZIndex);
+            if (!backgroundWindows.TryGetValue(savedWidget.MonitorIndex, out BackgroundWindow? targetWindow)) {
+                monitorFound = false;
 
-                targetWindow?.WidgetCanvas.Children.Add(container);
-            }
-            else {
-                if (!backgroundWindows.TryGetValue(0, out BackgroundWindow? primaryWindow)) {
+                if (!backgroundWindows.TryGetValue(0, out targetWindow)) {
                     continue;
                 }
-
-                WidgetContainer container = CreateWidgetContainer(savedWidget);
-                Canvas.SetLeft(container, 0); // Reset X to ensure it's visible
-                Canvas.SetTop(container, 0);  // Reset Y to ensure it's visible
-                primaryWindow?.WidgetCanvas.Children.Add(container);
             }
+
+            WidgetContainer container = CreateWidgetContainer(savedWidget);
+
+            // A widget whose monitor is gone goes to the primary monitor's corner so it stays visible
+            Canvas.SetLeft(container, monitorFound ? savedWidget.X : 0);
+            Canvas.SetTop(container, monitorFound ? savedWidget.Y : 0);
+            Panel.SetZIndex(container, savedWidget.ZIndex);
+
+            targetWindow.WidgetCanvas.Children.Add(container);
         }
     }
 
-    private WidgetContainer CreateWidgetContainer(WidgetState state) {
-	    WidgetContainer container = new();
+    private static WidgetContainer CreateWidgetContainer(WidgetState state) {
+        WidgetContainer container = new();
 
-	    // Dynamically ask the PluginManager to spawn the widget by name
-	    IWidgetPlugin? plugin = PluginManager.CreatePluginInstance(state.WidgetType, ShellManager);
+        try {
+            // Dynamically ask the PluginManager to spawn the widget by name
+            IWidgetPlugin? plugin = PluginManager.CreatePluginInstance(state.WidgetType, ShellManager);
 
-	    if (plugin != null) {
-		    plugin.OnLoad(); // Fire the lifecycle event
-		    container.WidgetContentHost.Content = plugin.GetContent();
-	    }
-	    else {
-		    // Fallback for missing or broken plugins
-		    container.WidgetContentHost.Content = new Border {
-			    Background = Brushes.Crimson,
-			    Width = 250,
-			    Height = 100,
-			    CornerRadius = new CornerRadius(10),
-			    Child = new TextBlock {
-				    Text = $"WIDGET '{state.WidgetType}' NOT FOUND",
-				    Foreground = Brushes.White,
-				    FontSize = 16,
-				    FontWeight = FontWeights.Bold,
-				    HorizontalAlignment = HorizontalAlignment.Center,
-				    VerticalAlignment = VerticalAlignment.Center,
-				    TextWrapping = TextWrapping.Wrap
-			    }
-		    };
-	    }
+            if (plugin is not null) {
+                plugin.OnLoad(); // Fire the lifecycle event
+                container.WidgetContentHost.Content = plugin.GetContent();
+                return container;
+            }
+        }
+        catch (Exception ex) {
+            // A broken plugin must not take the shell down with it
+            Log.Error($"Widget '{state.WidgetType}' failed to start", ex);
+            container.WidgetContentHost.Content = CreatePlaceholder($"WIDGET '{state.WidgetType}' FAILED TO LOAD");
+            return container;
+        }
 
-	    return container;
+        container.WidgetContentHost.Content = CreatePlaceholder($"WIDGET '{state.WidgetType}' NOT FOUND");
+        return container;
     }
 
-    // private WidgetContainer CreateWidgetContainer(WidgetState state) {
-    //     WidgetContainer container = new();
-
-    //     //todo: add some default states
-    //     switch (state.WidgetType) {
-    //case "Taskbar":
-    //	container.WidgetContentHost.Content = new TaskbarWidget();
-    //             break;
-    //         case "Clock":
-    //             container.WidgetContentHost.Content = new ClockWidget();
-    //             break;
-    //         default:
-    //          container.WidgetContentHost.Content = new Border {
-    //           Background = Brushes.Crimson,
-    //           Width = 250,
-    //           Height = 100,
-    //           CornerRadius = new CornerRadius(10),
-    //           Child = new TextBlock {
-    //            Text = "I AM A WIDGET",
-    //            Foreground = Brushes.White,
-    //            FontSize = 24,
-    //            FontWeight = FontWeights.Bold,
-    //            HorizontalAlignment = HorizontalAlignment.Center,
-    //            VerticalAlignment = VerticalAlignment.Center
-    //           }
-    //          };
-    //             break;
-    //     }
-
-    //     return container;
-    // }
+    private static Border CreatePlaceholder(string text) {
+        return new Border {
+            Background = Brushes.Crimson,
+            Width = 250,
+            Height = 100,
+            CornerRadius = new CornerRadius(10),
+            Child = new TextBlock {
+                Text = text,
+                Foreground = Brushes.White,
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap
+            }
+        };
+    }
 
     protected override void OnExit(ExitEventArgs e) {
-	    ShellManager.Dispose();
+        ShellManager.Dispose();
         base.OnExit(e);
     }
-}
-
+}

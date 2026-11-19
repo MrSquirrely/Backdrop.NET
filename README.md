@@ -43,7 +43,7 @@ public interface IRequireShellManager {
 ```
 
 ### Deployment
-To install a new widget, simply drop its compiled .dll into the Widgets/ folder next to the DesktopEngine.exe. 
+To install a new widget, simply drop its compiled .dll into the Widgets/ folder next to the Backdrop.NET.exe. 
 The engine dynamically loads it, maps its name to your layout.json, and handles the UI rendering autonomously.
 
 ## 🚀 Roadmap & Future Plans
@@ -82,12 +82,12 @@ Backdrop.NET is actively evolving from a foundational desktop overlay into a com
     2. Build the DesktopEngine and Backdrop.NET.Contracts projects.
     3. Build your widget projects and ensure the compiled .dll files are copied to the Widgets/ output directory.
     4. Define your widget layout and screen coordinates in layout.json.
-    5. Run DesktopEngine.exe.
+    5. Run Backdrop.NET.exe.
 
 Setting as the Default Shell
 #### To run Backdrop.NET as your default Windows shell:
     1. Open the Registry Editor (regedit).
     2. Navigate to HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\Winlogon.
     3. Add a new String Value (REG_SZ) named Shell.
-    4. Set the value to the absolute path of your DesktopEngine.exe.
-    5. Restart your computer or log out and log back in.
+    4. Set the value to the absolute path of your Backdrop.NET.exe.
+    5. Restart your computer or log out and log back in.

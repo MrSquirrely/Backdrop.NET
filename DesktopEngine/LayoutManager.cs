@@ -1,30 +1,56 @@
 ﻿using System.IO;
 using System.Text.Json;
+
 using Backdrop.NET.Models;
 
 namespace Backdrop.NET;
 
 public class LayoutManager {
 
-	private readonly string layoutFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "layout.json");
+    private static readonly JsonSerializerOptions SerializerOptions = new() {
+        WriteIndented = true
+    };
+
+    private readonly string layoutFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "layout.json");
 
     public void SaveLayout(IEnumerable<WidgetState> widgets) {
-		JsonSerializerOptions options = new() {
-			WriteIndented = true
-		};
+        try {
+            string jsonString = JsonSerializer.Serialize(widgets, SerializerOptions);
+            File.WriteAllText(layoutFilePath, jsonString);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+            Log.Error($"Could not save the layout to {layoutFilePath}", ex);
+        }
+    }
 
-		string jsonString = JsonSerializer.Serialize(widgets, options);
+    public List<WidgetState> LoadLayout() {
+        if (!File.Exists(layoutFilePath)) {
+            return [];
+        }
 
-		File.WriteAllText(layoutFilePath, jsonString);
-	}
+        try {
+            string jsonString = File.ReadAllText(layoutFilePath);
+            return JsonSerializer.Deserialize<List<WidgetState>>(jsonString) ?? [];
+        }
+        catch (JsonException ex) {
+            Log.Error($"{layoutFilePath} is not valid; starting with the default layout", ex);
+            BackUpBrokenLayout();
+            return [];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+            Log.Error($"Could not read {layoutFilePath}", ex);
+            return [];
+        }
+    }
 
-	public List<WidgetState> LoadLayout() {
-		if (!File.Exists(layoutFilePath)) {
-			return [];
-		}
+    // The default layout is about to be written over the file, so keep the user's copy for them to repair.
+    private void BackUpBrokenLayout() {
+        try {
+            File.Copy(layoutFilePath, layoutFilePath + ".bad", true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+            Log.Error("Could not back up the invalid layout file", ex);
+        }
+    }
 
-		string jsonString = File.ReadAllText(layoutFilePath);
-		return JsonSerializer.Deserialize<List<WidgetState>>(jsonString) ?? [];
-	}
-
-}
+}

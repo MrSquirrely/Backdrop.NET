@@ -18,6 +18,20 @@
     <ProjectReference Include="..\Backdrop.NET.Contracts\Backdrop.NET.Contracts.csproj" />
   </ItemGroup>
 
+  <!-- Build the widget plugins with the engine and drop them into Widgets/ next to the exe -->
+  <ItemGroup>
+    <WidgetProject Include="..\Backdrop.NET.ClockWidget\Backdrop.NET.ClockWidget.csproj" />
+    <WidgetProject Include="..\Backdrop.NET.TaskbarWidget\Backdrop.NET.TaskbarWidget.csproj" />
+    <ProjectReference Include="@(WidgetProject)" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <Target Name="CopyWidgets" AfterTargets="Build">
+    <MSBuild Projects="@(WidgetProject)" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="WidgetDll" />
+    </MSBuild>
+    <Copy SourceFiles="@(WidgetDll)" DestinationFolder="$(OutDir)Widgets" SkipUnchangedFiles="true" />
+  </Target>
+
   <ItemGroup>
     <None Update="layout.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
