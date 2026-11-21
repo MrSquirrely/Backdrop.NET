@@ -106,8 +106,10 @@ public static class DesktopApi {
         public uint flags;
     }
 
-    public static readonly IntPtr HWND_BOTTOM = new(1);
+    [DllImport("user32.dll")]
+    public static extern uint GetDoubleClickTime();
 
+    public static readonly IntPtr HWND_BOTTOM = new(1);
     public const int WM_WINDOWPOSCHANGING = 0x0046;
 
     public const uint SWP_NOSIZE = 0x0001;

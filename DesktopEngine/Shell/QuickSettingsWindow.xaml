@@ -1,0 +1,72 @@
+<shell:ShellFlyout x:Class="Backdrop.NET.Shell.QuickSettingsWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+                   xmlns:shell="clr-namespace:Backdrop.NET.Shell"
+                   Title="Quick settings"
+                   Width="384" Height="484"
+                   FontFamily="Segoe UI">
+    <shell:ShellFlyout.Resources>
+        <Style x:Key="SectionHeader" TargetType="TextBlock" BasedOn="{StaticResource BaseTextBlockStyle}">
+            <Setter Property="Margin" Value="0,18,0,8"/>
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+        </Style>
+    </shell:ShellFlyout.Resources>
+
+    <!-- The margin leaves room for the opening animation to overshoot without being clipped -->
+    <Border x:Name="PanelRoot" Margin="12" CornerRadius="12" Visibility="Hidden"
+            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1">
+        <StackPanel Margin="18,14,18,16">
+
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Click="AllSettings_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Settings}" FontSize="14"/>
+                        <TextBlock Text="All settings" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Button>
+                <TextBlock Text="Quick settings" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center"/>
+            </DockPanel>
+
+            <!-- Volume -->
+            <TextBlock Text="Volume" Style="{StaticResource SectionHeader}"/>
+            <StackPanel x:Name="VolumePanel">
+                <DockPanel>
+                    <TextBlock x:Name="VolumeValue" DockPanel.Dock="Right" Width="44" TextAlignment="Right"
+                               VerticalAlignment="Center"/>
+                    <ui:FontIcon DockPanel.Dock="Left" Icon="{x:Static ui:SegoeFluentIcons.Volume}" FontSize="16"
+                                 Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Slider x:Name="VolumeSlider" Minimum="0" Maximum="100" SmallChange="2" LargeChange="10"
+                            IsMoveToPointEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="VolumeSlider_ValueChanged"/>
+                </DockPanel>
+                <ui:ToggleSwitch x:Name="MuteToggle" OnContent="Muted" OffContent="Not muted" Margin="0,4,0,0"
+                                 Toggled="MuteToggle_Toggled"/>
+            </StackPanel>
+            <TextBlock x:Name="NoAudioText" Text="No playback device found." Visibility="Collapsed"/>
+
+            <!-- Network -->
+            <TextBlock Text="Network" Style="{StaticResource SectionHeader}"/>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Network settings" Click="NetworkSettings_Click"/>
+                <TextBlock x:Name="NetworkStatus" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Margin="0,0,10,0"/>
+            </DockPanel>
+
+            <!-- Shell -->
+            <TextBlock Text="Taskbar" Style="{StaticResource SectionHeader}"/>
+            <ui:ToggleSwitch x:Name="AutoHideToggle" OnContent="Hides automatically" OffContent="Always shown"
+                             Toggled="AutoHideToggle_Toggled"/>
+
+            <!-- Power -->
+            <TextBlock Text="Power" Style="{StaticResource SectionHeader}"/>
+            <UniformGrid Rows="1">
+                <Button Content="Lock" Margin="0,0,4,0" HorizontalAlignment="Stretch" Click="Lock_Click"/>
+                <Button x:Name="SleepButton" Content="Sleep" Margin="4,0" HorizontalAlignment="Stretch" Click="Sleep_Click"/>
+                <Button Content="Restart" Margin="4,0" HorizontalAlignment="Stretch" Click="Restart_Click"/>
+                <Button Content="Shut down" Margin="4,0,0,0" HorizontalAlignment="Stretch" Click="ShutDown_Click"/>
+            </UniformGrid>
+        </StackPanel>
+    </Border>
+</shell:ShellFlyout>

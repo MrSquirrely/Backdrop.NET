@@ -3,14 +3,14 @@
 ## 1. Core Shell Components
 *Replacing the essential features of explorer.exe utilizing ManagedShell data.*
 
-- [ ] **System Tray (Notification Area)**
+- [x] **System Tray (Notification Area)** — in the shell bar (`DesktopEngine/Shell/TaskbarWindow`)
   - Bind to `ShellManager.Tray.NotifyIcons`.
   - Required to view and interact with background apps (Discord, antivirus, cloud sync tools).
-- [ ] **Start Menu / App Launcher**
+- [x] **Start Menu / App Launcher** — pop-up menu with search (`DesktopEngine/Shell/StartMenuWindow`); no Win-key hotkey yet
   - Parse `%ProgramData%\Microsoft\Windows\Start Menu\Programs`.
   - Fetch installed UWP (Windows Store) apps using ManagedShell helpers.
   - Implement as a full-screen overlay or traditional pop-up menu.
-- [ ] **Quick Settings (Action Center)**
+- [x] **Quick Settings (Action Center)** — click the clock (`DesktopEngine/Shell/QuickSettingsWindow`): volume, mute, network state, auto-hide, power
   - Utilize `VolumeHelper` and `PowerHelper`.
   - Add controls for volume muting/adjustment, network state, and power management (shutdown/restart).
 
