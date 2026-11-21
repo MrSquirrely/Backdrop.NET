@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.11.0" />
     <PackageReference Include="ManagedShell" Version="0.0.337" />
     <PackageReference Include="WpfScreenHelper" Version="2.1.1" />
   </ItemGroup>

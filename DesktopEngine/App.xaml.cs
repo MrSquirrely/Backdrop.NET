@@ -7,8 +7,10 @@ using System.Windows.Threading;
 
 using Backdrop.NET.Contracts;
 using Backdrop.NET.Models;
+using Backdrop.NET.Shell;
 
 using ManagedShell;
+using ManagedShell.AppBar;
 
 using WpfScreenHelper;
 
@@ -19,8 +21,19 @@ namespace Backdrop.NET;
 public partial class App {
 
     private readonly Dictionary<int, BackgroundWindow> backgroundWindows = [];
+    private DispatcherTimer? explorerDesktopTimer;
+    private TaskbarWindow? taskbar;
     public static ShellManager ShellManager { get; private set; } = null!;
     public static PluginManager PluginManager { get; } = new();
+
+    /// <summary>
+    /// True in Debug builds, and in any build while a debugger is attached.
+    /// </summary>
+#if DEBUG
+    public static bool IsDebugging => true;
+#else
+    public static bool IsDebugging => System.Diagnostics.Debugger.IsAttached;
+#endif
 
     protected override void OnStartup(StartupEventArgs e) {
         base.OnStartup(e);
@@ -28,13 +41,15 @@ public partial class App {
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
         ShellManager = new ShellManager();
+        SetExplorerTaskbarHidden(true);
 
         string pluginsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Widgets");
         PluginManager.LoadPlugins(pluginsPath);
 
         int monitorIndex = 0;
 
-        foreach (Screen screen in Screen.AllScreens) {
+        // Primary screen first, so monitor index 0 (where widgets go by default) is always the main screen
+        foreach (Screen screen in Screen.AllScreens.OrderByDescending(static s => s.Primary)) {
             int physicsX = (int)screen.Bounds.Left;
             int physicsY = (int)screen.Bounds.Top;
             int physicsWidth = (int)screen.Bounds.Width;
@@ -54,12 +69,84 @@ public partial class App {
 
             window.WallpaperImage.Source = LoadWallpaper(screen, physicsWidth, physicsHeight);
 
+            if (IsDebugging) {
+                window.ShowDebugWatermark(
+                    $"Screen {monitorIndex}{(screen.Primary ? " (primary)" : string.Empty)}  {screen.DeviceName}\n"
+                    + $"Position: {physicsX}, {physicsY}\n"
+                    + $"Resolution: {physicsWidth} x {physicsHeight} px\n"
+                    + $"Working area: {(int)screen.WorkingArea.Width} x {(int)screen.WorkingArea.Height} px"
+                    + $" at {(int)screen.WorkingArea.Left}, {(int)screen.WorkingArea.Top}\n"
+                    + $"Scale: {scaleX:P0} ({(int)Math.Round(scaleX * 96)} DPI)\n"
+                    + "Alt+F4 to exit");
+            }
+
             window.Show();
             backgroundWindows.Add(monitorIndex, window);
             monitorIndex++;
         }
 
+        KeepAboveExplorerDesktop();
+
         LoadAndDistributeWidgets();
+
+        StartShellBar();
+    }
+
+    // The bar with Start, running tasks and the notification area, on the primary screen
+    private void StartShellBar() {
+        try {
+            ShellSettings.Load();
+            taskbar = new TaskbarWindow(ShellManager, AppBarScreen.FromPrimaryScreen());
+            taskbar.Show();
+        }
+        catch (Exception ex) {
+            Log.Error("Could not start the shell bar", ex);
+        }
+    }
+
+    /// <summary>
+    /// Exits the shell cleanly: gives the reserved screen space back first, then shuts the app down.
+    /// </summary>
+    public static void ExitShell() {
+        if (Current is App app) {
+            try {
+                app.taskbar?.Shutdown();
+            }
+            catch (Exception ex) {
+                Log.Error("Could not close the shell bar cleanly", ex);
+            }
+
+            app.taskbar = null;
+        }
+
+        Current.Shutdown();
+    }
+
+    // Hidden rather than covered: covering the taskbar would mean sitting above every app as well.
+    // ManagedShell remembers the taskbar's original state and puts it back when this is set to false.
+    private static void SetExplorerTaskbarHidden(bool hidden) {
+        try {
+            ShellManager.ExplorerHelper.HideExplorerTaskbar = hidden;
+        }
+        catch (Exception ex) {
+            Log.Error($"Could not {(hidden ? "hide" : "restore")} the Explorer taskbar", ex);
+        }
+    }
+
+    // When Explorer is running, its desktop window is also at the bottom of the Z-order and would hide
+    // ours. Push it underneath now, and again periodically in case Explorer brings it back (e.g. Win+D).
+    private void KeepAboveExplorerDesktop() {
+        if (!ExplorerDesktop.IsPresent) {
+            return;
+        }
+
+        ExplorerDesktop.SendToBottom();
+
+        explorerDesktopTimer = new DispatcherTimer {
+            Interval = TimeSpan.FromSeconds(2)
+        };
+        explorerDesktopTimer.Tick += static (_, _) => ExplorerDesktop.SendToBottom();
+        explorerDesktopTimer.Start();
     }
 
     // The shell is the user's whole desktop: log and keep running rather than leave a black screen.
@@ -187,6 +274,8 @@ public partial class App {
     }
 
     protected override void OnExit(ExitEventArgs e) {
+        explorerDesktopTimer?.Stop();
+        SetExplorerTaskbarHidden(false);
         ShellManager.Dispose();
         base.OnExit(e);
     }

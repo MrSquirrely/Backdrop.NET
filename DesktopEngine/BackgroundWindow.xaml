@@ -13,5 +13,22 @@
     <Grid>
         <Image x:Name="WallpaperImage" Stretch="UniformToFill" />
         <Canvas x:Name="WidgetCanvas" Background="{x:Null}"/>
+
+        <!-- Only shown while debugging; never takes mouse input away from the widgets -->
+        <Border x:Name="DebugWatermark"
+                Visibility="Collapsed"
+                IsHitTestVisible="False"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="#66000000" CornerRadius="12" Padding="32,20">
+            <StackPanel>
+                <TextBlock Text="DEBUGGING"
+                           FontSize="56" FontWeight="Bold" FontFamily="Segoe UI"
+                           Foreground="#CCFFFFFF" HorizontalAlignment="Center"/>
+                <TextBlock x:Name="DebugWatermarkText"
+                           FontSize="18" FontFamily="Consolas"
+                           Foreground="#CCFFFFFF" TextAlignment="Center"
+                           HorizontalAlignment="Center" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

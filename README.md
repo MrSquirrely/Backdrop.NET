@@ -7,9 +7,10 @@ Powered by [ManagedShell](https://github.com/cairoshell/managedshell), it handle
 ---
 
 ## ✨ Features
-* **True Shell Replacement:** Runs as the lowest Z-order desktop layer, eliminating the need for hacky `Progman` or `WorkerW` injection.
+* **True Shell Replacement:** Runs as the lowest Z-order desktop layer and hides the Explorer taskbar while it is running, eliminating the need for hacky `Progman` or `WorkerW` injection.
 * **Native WPF Widgets:** Build beautiful, hardware-accelerated desktop widgets using standard XAML.
 * **Multi-Monitor Support:** Automatically detects physics bounds and scales widgets seamlessly across all connected displays.
+* **Shell Bar:** A reserved bar at the bottom of the primary screen with a Start menu, running tasks, the notification area and a clock. Apps cannot cover it. Right-click it to switch between the *Standard* and *Islands* styles or to turn on auto-hide; everything opens and hides with the same liquid animation. Click the clock for Quick Settings (volume, network, power), and use the Settings button in the Start menu for the Settings app. The shell UI is themed with [iNKORE.UI.WPF.Modern](https://github.com/iNKORE-NET/UI.WPF.Modern). Options are stored in `%AppData%\Backdrop.NET\settings.json`.
 * **JSON Layout Management:** Easily position and manage widget coordinates, Z-indexes, and assignments across different monitors via a simple `layout.json` file.
 
 ---

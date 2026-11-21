@@ -1,0 +1,99 @@
+<shell:ShellFlyout x:Class="Backdrop.NET.Shell.StartMenuWindow"
+                   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+                   xmlns:shell="clr-namespace:Backdrop.NET.Shell"
+                   Title="Start"
+                   Width="444" Height="604"
+                   FontFamily="Segoe UI"
+                   PreviewKeyDown="Window_PreviewKeyDown">
+    <shell:ShellFlyout.Resources>
+        <Style x:Key="AppItem" TargetType="ListBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Chrome" Background="Transparent" CornerRadius="6" Padding="10,7" Margin="0,1">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SystemControlHighlightListMediumBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <EventSetter Event="PreviewMouseLeftButtonUp" Handler="AppItem_MouseLeftButtonUp"/>
+        </Style>
+    </shell:ShellFlyout.Resources>
+
+    <!-- The margin leaves room for the opening animation to overshoot without being clipped -->
+    <Border x:Name="MenuRoot" Margin="12" CornerRadius="12" Visibility="Hidden"
+            Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1">
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBox x:Name="SearchBox" Grid.Row="0"
+                     ui:ControlHelper.PlaceholderText="Type to search apps"
+                     TextChanged="SearchBox_TextChanged"/>
+
+            <ListBox x:Name="AppList" Grid.Row="1" Margin="0,10,0,10"
+                     Background="Transparent" BorderThickness="0" Padding="0"
+                     ItemContainerStyle="{StaticResource AppItem}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     VirtualizingPanel.ScrollUnit="Pixel">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding Icon}" Width="24" Height="24"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock Text="{Binding Name}" Margin="12,0,0,0" FontSize="13"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- User, settings and power -->
+            <DockPanel Grid.Row="2">
+                <Button x:Name="PowerButton" DockPanel.Dock="Right" Margin="8,0,0,0" Click="PowerButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.PowerButton}" FontSize="14"/>
+                        <TextBlock Text="Power" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Lock" Click="Lock_Click"/>
+                            <MenuItem Header="Sign out" Click="SignOut_Click"/>
+                            <MenuItem x:Name="SleepItem" Header="Sleep" Click="Sleep_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Restart" Click="Restart_Click"/>
+                            <MenuItem Header="Shut down" Click="ShutDown_Click"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+                <Button DockPanel.Dock="Right" ToolTip="Open Backdrop.NET settings" Click="SettingsButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Settings}" FontSize="14"/>
+                        <TextBlock Text="Settings" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Button>
+                <!-- Debug runs only: closes the shell straight away, no confirmation -->
+                <Button x:Name="DebugExitButton" DockPanel.Dock="Right" Visibility="Collapsed" Margin="0,0,8,0"
+                        Content="Exit" ToolTip="Exit Backdrop.NET (shown while debugging)"
+                        Click="DebugExitButton_Click"/>
+                <TextBlock x:Name="UserName" VerticalAlignment="Center" Margin="6,0,0,0" FontSize="13"
+                           TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Grid>
+    </Border>
+</shell:ShellFlyout>

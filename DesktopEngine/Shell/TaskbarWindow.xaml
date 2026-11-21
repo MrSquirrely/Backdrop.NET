@@ -1,0 +1,156 @@
+<appbar:AppBarWindow x:Class="Backdrop.NET.Shell.TaskbarWindow"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:appbar="clr-namespace:ManagedShell.AppBar;assembly=ManagedShell.AppBar"
+                     AllowsTransparency="True"
+                     Background="Transparent"
+                     FontFamily="Segoe UI">
+    <appbar:AppBarWindow.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Backdrop.NET;component/Shell/ShellStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </appbar:AppBarWindow.Resources>
+
+    <Grid>
+        <!-- Stays hit-testable while the bar is hidden, so reaching the screen edge brings it back -->
+        <Border x:Name="EdgeSensor" Height="2" VerticalAlignment="Bottom" Background="#01000000"/>
+
+        <!-- Everything that shows and hides. The faint background keeps the gaps between islands
+             part of the bar for the mouse; it is Hidden (click-through) while the bar is hidden. -->
+        <Grid x:Name="BarHost" Background="#01000000">
+            <Grid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem x:Name="StandardStyleItem" Header="Standard style" IsCheckable="True" Click="StandardStyleItem_Click"/>
+                    <MenuItem x:Name="IslandsStyleItem" Header="Islands style" IsCheckable="True" Click="IslandsStyleItem_Click"/>
+                    <Separator/>
+                    <MenuItem x:Name="AutoHideItem" Header="Automatically hide the bar" IsCheckable="True" Click="AutoHideItem_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Task Manager" Click="TaskManagerItem_Click"/>
+                    <MenuItem Header="Exit Backdrop.NET" Click="ExitItem_Click"/>
+                </ContextMenu>
+            </Grid.ContextMenu>
+
+            <!-- Solid full-width bar, Standard style only -->
+            <Border x:Name="StandardBackground"
+                    Background="{StaticResource ShellSurfaceBrush}"
+                    BorderBrush="{StaticResource ShellBorderBrush}"
+                    BorderThickness="0,1,0,0"/>
+
+            <Grid x:Name="Sections">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="StartColumn" Width="Auto"/>
+                    <ColumnDefinition x:Name="TasksColumn" Width="*"/>
+                    <ColumnDefinition x:Name="TrayColumn" Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Start -->
+                <Border x:Name="StartIsland" Grid.Column="0" HorizontalAlignment="Left">
+                    <Button x:Name="StartButton" Style="{StaticResource ShellButton}"
+                            Width="44" Margin="2" Padding="0" ToolTip="Start" Click="StartButton_Click">
+                        <Path Fill="{StaticResource ShellAccentBrush}" Width="18" Height="18" Stretch="Uniform"
+                              Data="M0,0 H7.5 V7.5 H0 Z M9.5,0 H17 V7.5 H9.5 Z M0,9.5 H7.5 V17 H0 Z M9.5,9.5 H17 V17 H9.5 Z"/>
+                    </Button>
+                </Border>
+
+                <!-- Running tasks -->
+                <Border x:Name="TasksIsland" Grid.Column="1" HorizontalAlignment="Left">
+                    <ItemsControl x:Name="TaskList" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Click="TaskButton_Click" MouseEnter="TaskButton_MouseEnter" Margin="2" Padding="8,0" ToolTip="{Binding Title}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource ShellButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding State}" Value="Active">
+                                                    <Setter Property="Background" Value="{StaticResource ShellActiveBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State}" Value="Flashing">
+                                                    <Setter Property="Background" Value="#66FF9F0A"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Minimize" Click="TaskMinimize_Click"/>
+                                            <MenuItem Header="Close window" Click="TaskClose_Click"/>
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="{Binding Icon}" Width="20" Height="20"
+                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        <TextBlock Text="{Binding Title}" Margin="8,0,0,0" MaxWidth="130"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <!-- Notification area -->
+                <Border x:Name="TrayIsland" Grid.Column="2" HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel.Resources>
+                            <DataTemplate x:Key="TrayIconTemplate">
+                                <Border Width="28" Height="28" CornerRadius="6" Background="Transparent"
+                                        ToolTip="{Binding Title}" ToolTipService.InitialShowDelay="600"
+                                        MouseDown="TrayIcon_MouseDown" MouseUp="TrayIcon_MouseUp"
+                                        MouseEnter="TrayIcon_MouseEnter" MouseLeave="TrayIcon_MouseLeave"
+                                        MouseMove="TrayIcon_MouseMove"
+                                        ContextMenuOpening="TrayIcon_ContextMenuOpening">
+                                    <Image Source="{Binding Icon}" Width="16" Height="16"
+                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                </Border>
+                            </DataTemplate>
+                            <ItemsPanelTemplate x:Key="TrayPanel">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </StackPanel.Resources>
+
+                        <!-- Icons that are not pinned pour out of the chevron when it is clicked -->
+                        <ItemsControl x:Name="UnpinnedTrayIcons" Visibility="Collapsed" Focusable="False"
+                                      VerticalAlignment="Center"
+                                      ItemTemplate="{StaticResource TrayIconTemplate}"
+                                      ItemsPanel="{StaticResource TrayPanel}"/>
+
+                        <Button x:Name="TrayOverflowButton" Style="{StaticResource ShellButton}"
+                                Width="26" Margin="2" Padding="0" ToolTip="Show hidden icons"
+                                Click="TrayOverflowButton_Click">
+                            <Path x:Name="TrayOverflowGlyph" Stroke="{StaticResource ShellTextBrush}" StrokeThickness="1.5"
+                                  Width="9" Height="9" Stretch="Uniform" Data="M6,0 L0,5 L6,10"
+                                  RenderTransformOrigin="0.5,0.5">
+                                <Path.RenderTransform>
+                                    <RotateTransform x:Name="TrayOverflowRotation" Angle="0"/>
+                                </Path.RenderTransform>
+                            </Path>
+                        </Button>
+
+                        <ItemsControl x:Name="PinnedTrayIcons" Focusable="False" VerticalAlignment="Center"
+                                      ItemTemplate="{StaticResource TrayIconTemplate}"
+                                      ItemsPanel="{StaticResource TrayPanel}"/>
+
+                        <!-- The clock doubles as the Quick Settings button -->
+                        <Button x:Name="QuickSettingsButton" Style="{StaticResource ShellButton}"
+                                Margin="4,2,4,2" Padding="8,0" ToolTip="Quick settings"
+                                Click="QuickSettingsButton_Click">
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="ClockTime" Foreground="{StaticResource ShellTextBrush}"
+                                           FontSize="12" HorizontalAlignment="Right"/>
+                                <TextBlock x:Name="ClockDate" Foreground="{StaticResource ShellSubtleTextBrush}"
+                                           FontSize="11" HorizontalAlignment="Right"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</appbar:AppBarWindow>
