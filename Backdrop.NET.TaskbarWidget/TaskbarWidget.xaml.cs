@@ -1,42 +1,34 @@
-﻿using ManagedShell.WindowsTasks;
-
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+
 using ManagedShell;
+using ManagedShell.WindowsTasks;
 
 namespace Backdrop.NET.TaskbarWidget;
 /// <summary>
 /// Interaction logic for TaskbarWidget.xaml
 /// </summary>
 public partial class TaskbarWidget : UserControl {
-    private readonly ShellManager shellManager;
-    public ObservableCollection<ManualTask> FallbackTasks { get; set; } = [];
+    private readonly ShellManager? shellManager;
+    public ObservableCollection<ManualTask> FallbackTasks { get; } = [];
 
-    public TaskbarWidget(ShellManager manger) {
+    public TaskbarWidget(ShellManager? manager) {
         InitializeComponent();
-        shellManager = manger;
+        shellManager = manager;
         Loaded += TaskbarWidget_Loaded;
     }
 
     private void TaskbarWidget_Loaded(object sender, RoutedEventArgs e) {
-        // 1. Try ManagedShell directly using the correct GroupedWindows collection
-        if (shellManager?.Tasks?.GroupedWindows != null && !shellManager.Tasks.GroupedWindows.IsEmpty) {
+        // 1. Bind to ManagedShell's live collection whenever the tasks service exists. It is often
+        //    empty at this point (at login, nothing is open yet) and fills in as windows appear.
+        if (shellManager?.Tasks?.GroupedWindows is not null) {
             TaskItemsControl.ItemsSource = shellManager.Tasks.GroupedWindows;
             return;
         }
 
-        // 2. If ManagedShell is blocked by Windows Explorer, fallback to manual fetch!
+        // 2. No tasks service at all: fall back to a one-off snapshot of the open windows.
         LoadTasksManually();
         TaskItemsControl.ItemsSource = FallbackTasks;
     }
@@ -44,17 +36,17 @@ public partial class TaskbarWidget : UserControl {
     private void LoadTasksManually() {
         FallbackTasks.Clear();
 
-        NativeMethods.EnumWindows((hWnd, lParam) => {
+        NativeMethods.EnumWindows((hWnd, _) => {
             // Only grab windows that are currently visible
             if (NativeMethods.IsWindowVisible(hWnd)) {
-                StringBuilder title = new StringBuilder(256);
+                StringBuilder title = new(256);
                 if (NativeMethods.GetWindowText(hWnd, title, 256) > 0) {
                     string appTitle = title.ToString();
 
                     // Filter out invisible overlays and our own background
-                    if (!string.IsNullOrWhiteSpace(appTitle) &&
-                        appTitle != "Program Manager" &&
-                        appTitle != "Desktop Engine") {
+                    if (!string.IsNullOrWhiteSpace(appTitle)
+                        && (appTitle != "Program Manager")
+                        && (appTitle != "Desktop Engine")) {
                         FallbackTasks.Add(new ManualTask {
                             Title = appTitle,
                             Handle = hWnd
@@ -66,7 +58,6 @@ public partial class TaskbarWidget : UserControl {
         }, IntPtr.Zero);
     }
 
-
     private void TaskButton_Click(object sender, RoutedEventArgs e) {
         if (sender is Button btn) {
             // If ManagedShell is working:
@@ -75,7 +66,7 @@ public partial class TaskbarWidget : UserControl {
             }
             // If our Manual Fallback is working:
             else if (btn.DataContext is ManualTask manualTask) {
-	            NativeMethods.SetForegroundWindow(manualTask.Handle);
+                NativeMethods.SetForegroundWindow(manualTask.Handle);
             }
         }
     }
@@ -87,6 +78,6 @@ public partial class TaskbarWidget : UserControl {
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
-	    System.Windows.Application.Current.Shutdown();
+        Application.Current.Shutdown();
     }
-}
+}

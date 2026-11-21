@@ -8,6 +8,7 @@
         ShowInTaskbar="False"
         Background="LightSlateGray"
         AllowsTransparency="False"
+        ShowActivated="False"
         >
     <Grid>
         <Image x:Name="WallpaperImage" Stretch="UniformToFill" />

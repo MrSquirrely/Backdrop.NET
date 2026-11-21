@@ -1,15 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+﻿using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace Backdrop.NET.ClockWidget;
@@ -17,21 +6,30 @@ namespace Backdrop.NET.ClockWidget;
 /// Interaction logic for ClockWidget.xaml
 /// </summary>
 public partial class ClockWidget : UserControl {
-	private readonly DispatcherTimer timer;
-	public ClockWidget() {
-		InitializeComponent();
+    private readonly DispatcherTimer timer;
 
-		UpdateTime();
+    public ClockWidget() {
+        InitializeComponent();
 
-		timer = new DispatcherTimer() {
-			Interval = TimeSpan.FromSeconds(1)
-		};
-		timer.Tick += (sender, args) => UpdateTime();
-		timer.Start();
-	}
+        timer = new DispatcherTimer {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        timer.Tick += (_, _) => UpdateTime();
 
-	private void UpdateTime() {
-		TimeText.Text = DateTime.Now.ToString("h:mm tt");
-		DateText.Text = DateTime.Now.ToString("dddd, MMMM, d");
-	}
-}
+        // Run only while on screen, so a removed widget is not kept alive by its timer.
+        // (Moving between monitors unloads and reloads the control.)
+        Loaded += (_, _) => {
+            UpdateTime();
+            timer.Start();
+        };
+        Unloaded += (_, _) => timer.Stop();
+
+        UpdateTime();
+    }
+
+    private void UpdateTime() {
+        DateTime now = DateTime.Now;
+        TimeText.Text = now.ToString("h:mm tt");
+        DateText.Text = now.ToString("dddd, MMMM d");
+    }
+}

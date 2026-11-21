@@ -63,6 +63,13 @@ public partial class WidgetContainer {
     private void Grip_MouseMove(object sender, MouseEventArgs e) {
         if (!isDragging) return;
 
+        // The button-up can be missed if mouse capture is lost mid-drag (e.g. another window takes focus)
+        if (e.LeftButton != MouseButtonState.Pressed) {
+            isDragging = false;
+            ((FrameworkElement)sender).ReleaseMouseCapture();
+            return;
+        }
+
         if (Window.GetWindow(this) is not BackgroundWindow currentWindow) return;
 
         Point mouseInWindow = e.GetPosition(currentWindow);
@@ -135,4 +142,4 @@ public partial class WidgetContainer {
         }
         return 0;
     }
-}
+}

@@ -63,10 +63,10 @@ public static class DesktopApi {
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
-    private static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex) =>
+    public static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex) =>
         IntPtr.Size == 8 ? GetWindowLongPtr64(hWnd, nIndex) : new IntPtr(GetWindowLong(hWnd, nIndex));
 
-    private static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong) {
+    public static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong) {
         if (IntPtr.Size == 8) {
             return SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
         } else {
@@ -94,6 +94,24 @@ public static class DesktopApi {
             Bottom = bottom;
         }
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WINDOWPOS {
+        public IntPtr hwnd;
+        public IntPtr hwndInsertAfter;
+        public int x;
+        public int y;
+        public int cx;
+        public int cy;
+        public uint flags;
+    }
+
+    public static readonly IntPtr HWND_BOTTOM = new(1);
+
+    public const int WM_WINDOWPOSCHANGING = 0x0046;
+
+    public const uint SWP_NOSIZE = 0x0001;
+    public const uint SWP_NOMOVE = 0x0002;
 
     public const int GWL_STYLE = -16;
     public const int GWL_EXSTYLE = -20;
